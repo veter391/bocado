@@ -27,7 +27,7 @@
     "expo-image": "~3.0.0",
     "expo-image-manipulator": "~14.0.0",
     "expo-image-picker": "~17.0.0",
-    "expo-linear-gradient": "~15.0.0",
+    "expo-linear-gradient": "~57.0.0",
     "expo-notifications": "~0.32.0",
     "expo-secure-store": "~15.0.0",
     "expo-splash-screen": "~31.0.0",
