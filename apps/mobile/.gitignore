@@ -1,0 +1,3 @@
+
+# Expo access token for EAS builds — NEVER commit
+.eas-token

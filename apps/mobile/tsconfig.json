@@ -1,0 +1,27 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "jsx": "react-jsx",
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ],
+      "@bocado/shared": [
+        "../../packages/shared/src"
+      ],
+      "@bocado/nutrition": [
+        "../../packages/nutrition/src"
+      ]
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx"
+  ],
+  "//exclude": "vitest.config.ts uses Node URL/fileURLToPath APIs (Node lib, not the app's bundler lib); it is type-checked by Vitest's own pipeline, not the app tsc. Mirrors apps/api which keeps its include scoped to src/.",
+  "exclude": [
+    "vitest.config.ts"
+  ]
+}

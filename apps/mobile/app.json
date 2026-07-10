@@ -1,0 +1,69 @@
+{
+  "expo": {
+    "name": "Bocado",
+    "slug": "bocado",
+    "scheme": "bocado",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "icon": "./assets/icon.png",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.bocado.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Bocado uses the camera to read the menu in front of you.",
+        "NSPhotoLibraryUsageDescription": "Bocado lets you pick a photo of a menu from your library to read it."
+      }
+    },
+    "android": {
+      "package": "com.bocado.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#FF6F5E"
+      },
+      "permissions": [
+        "CAMERA",
+        "POST_NOTIFICATIONS",
+        "android.permission.CAMERA"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-font",
+      "expo-notifications",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 300,
+          "resizeMode": "contain",
+          "backgroundColor": "#FAF4E9"
+        }
+      ],
+      [
+        "react-native-vision-camera",
+        {
+          "cameraPermissionText": "Bocado uses the camera to read the menu in front of you."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Bocado lets you pick a photo of a menu from your library to read it."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": false
+    },
+    "extra": {
+      "eas": {
+        "projectId": "0eba2e90-2260-46ee-8518-d5551f595784"
+      }
+    },
+    "owner": "nazdev405"
+  }
+}
