@@ -1,0 +1,4 @@
+# Template for apps/api/.dev.vars (copy to `.dev.vars` and fill in real values).
+# `.dev.vars` is gitignored; this example is safe to commit.
+WAVESPEED_API_KEY=ws-xxxxxxxxxxxxxxxxxxxxxxxx
+# OPENROUTER_API_KEY=sk-or-xxxxxxxx   # optional legacy perception path
