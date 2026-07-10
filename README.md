@@ -1,12 +1,12 @@
 <div align="center">
 
-<img src="docs/assets/logo.png" alt="Bocado" width="112" height="112" />
+<img src="docs/assets/preview.jpg" alt="Bocado — AI-powered menu intelligence" width="100%" />
 
 # Bocado
 
-**Point your camera at any restaurant menu and actually understand it.**
-Every dish translated, explained, and scored for *you* — with an honest estimate of what's in it,
-so you know what to order. EU-first. Privacy-first. Math-first.
+**AI-powered menu intelligence.** Point your camera at any restaurant menu and actually understand
+it: a vision model reads the menu, every dish is translated, explained, and scored for *you*, with
+an honest estimate of what's in it — so you know what to order. EU-first. Privacy-first. Math-first.
 
 [![License: PolyForm Noncommercial](https://img.shields.io/badge/License-PolyForm%20Noncommercial%201.0.0-0b7285)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Android%20(APK)-3ddc84)](../../releases/latest)
@@ -17,7 +17,7 @@ so you know what to order. EU-first. Privacy-first. Math-first.
 
 ---
 
-## What it does
+## 🍽️ What it does
 
 Most menus abroad are walls of text in a half-read language, no pictures, strange dish names —
 and the waiter is already standing there. Bocado turns a photo of that menu into a clean, ranked
@@ -32,7 +32,7 @@ list:
 - **Multi-page** — shoot several pages of one menu; repeated dishes are recorded once.
 - **AI dish images** *(Pro)* — when the menu has no photo, an illustration so you can see the dish.
 
-## Download
+## 📲 Download
 
 <table>
 <tr>
@@ -55,7 +55,7 @@ No account, no sign-up — open it and scan a menu.
 </tr>
 </table>
 
-## How it works
+## 🧠 How it works
 
 ```
                     on-device                         Cloudflare Worker (EU)
@@ -77,7 +77,7 @@ real data (fully unit-tested). AI is used *only* where it must be: reading a mes
 structured text, translation, dish descriptions, and generating dish illustrations. Every number a
 user reads as fact is produced by code, not a model.
 
-## Principles (non-negotiable)
+## 🧭 Principles (non-negotiable)
 
 1. **Math-first, AI-narrow** — deterministic engine for anything shown as fact.
 2. **EU-safe by design** — identity and health/allergy data never leave the device / Cloudflare EU
@@ -87,7 +87,7 @@ user reads as fact is produced by code, not a model.
    AI images are clearly labelled illustrations, not photos.
 4. **Simple like Yuka** — one primary action (scan), a glanceable result, minimal text.
 
-## Tech stack
+## 🛠️ Tech stack
 
 | Layer | Choice |
 |-------|--------|
@@ -99,7 +99,7 @@ user reads as fact is produced by code, not a model.
 | Nutrition | CIQUAL + USDA FoodData Central (deterministic engine) |
 | Tests | Vitest — nutrition · API · mobile |
 
-## Repository layout
+## 📁 Repository layout
 
 ```
 apps/
@@ -111,7 +111,7 @@ packages/
 docs/           architecture · security · stack · design · branding · infrastructure · legal
 ```
 
-## <a id="quality-bar"></a>Quality bar
+## <a id="quality-bar"></a>✅ Quality bar
 
 - **505 unit tests** green (nutrition · API · mobile), TypeScript strict, zero-warning lint on
   touched code.
@@ -120,7 +120,7 @@ docs/           architecture · security · stack · design · branding · infra
 - Public model endpoints are rate-limited (per-caller, fixed window) and size-capped so a fresh
   deploy is cost-capped out of the box.
 
-## Status
+## 🚦 Status
 
 This is a working, self-hostable MVP — not yet a store-published paid product. Honest state:
 
@@ -134,7 +134,7 @@ This is a working, self-hostable MVP — not yet a store-published paid product.
 | On-device face/menu pre-flight | **Not implemented** (EXIF/GPS strip is shipped) — see [SECURITY.md](docs/SECURITY.md) §3 |
 | iOS build / store distribution | **Not published** |
 
-## Documentation
+## 📚 Documentation
 
 [Architecture](docs/ARCHITECTURE.md) · [Security](docs/SECURITY.md) · [Stack](docs/STACK.md) ·
 [Design system](docs/DESIGN.md) · [Branding](docs/BRANDING.md) ·
@@ -142,7 +142,7 @@ This is a working, self-hostable MVP — not yet a store-published paid product.
 [Terms](docs/legal/TERMS_OF_SERVICE.md) · [Disclaimers](docs/legal/DISCLAIMERS.md) ·
 [Attribution](docs/legal/ATTRIBUTION.md)
 
-## Running it yourself
+## 🚀 Running it yourself
 
 Prereqs: Node 20+, pnpm, a Cloudflare account (for the Worker), a WaveSpeed API key.
 
@@ -162,7 +162,7 @@ pnpm dev                            # Expo; point EXPO_PUBLIC_API_BASE_URL at yo
 Secrets (`.dev.vars`, tokens) are gitignored and never committed. Set the Worker's production
 secret with `wrangler secret put WAVESPEED_API_KEY`.
 
-## License
+## 📄 License
 
 [PolyForm Noncommercial 1.0.0](LICENSE) — source is public; personal, educational, research and
 other **noncommercial** use is free. Commercial use (selling it, or a commercial clone) is not
