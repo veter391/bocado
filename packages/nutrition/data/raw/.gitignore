@@ -1,0 +1,3 @@
+# Raw source downloads cached by scripts/ingest.mjs — do not commit (large, re-fetchable).
+*
+!.gitignore
