@@ -13,13 +13,13 @@
   "dependencies": {
     "@bocado/nutrition": "workspace:*",
     "@bocado/shared": "workspace:*",
-    "hono": "^4.6.0",
+    "hono": "^4.12.29",
     "zod": "3.24.1"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260101.0",
     "typescript": "5.9.2",
     "vitest": "^2.1.0",
-    "wrangler": "^4.0.0"
+    "wrangler": "^4.110.0"
   }
 }
