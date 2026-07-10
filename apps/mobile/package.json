@@ -24,7 +24,7 @@
     "expo": "~54.0.0",
     "expo-dev-client": "~6.0.21",
     "expo-font": "~14.0.0",
-    "expo-image": "~3.0.0",
+    "expo-image": "~57.0.0",
     "expo-image-manipulator": "~14.0.0",
     "expo-image-picker": "~17.0.0",
     "expo-linear-gradient": "~15.0.0",
