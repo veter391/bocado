@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "types": ["@cloudflare/workers-types"],
+    "paths": {
+      "@bocado/shared": ["../../packages/shared/src"],
+      "@bocado/nutrition": ["../../packages/nutrition/src"]
+    }
+  },
+  "include": ["src/**/*.ts"]
+}

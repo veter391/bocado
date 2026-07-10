@@ -1,0 +1,13 @@
+# Local secrets for `wrangler dev` — NEVER commit (holds the WaveSpeed key).
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+
+# Wrangler / build artifacts
+.wrangler/
+dist/
+
+# generated image artefacts (regenerable by the live smoke tests)
+src/__fixtures__/compare-*.png
+src/__fixtures__/generated-dish.png
+src/__fixtures__/fair-*.png

@@ -1,0 +1,87 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "bocado-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-05-21",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true },
+  "workers_dev": true,
+
+  // Non-secret config. The ONLY secret is WAVESPEED_API_KEY (perception LLM + images).
+  // Local dev: put it in apps/api/.dev.vars. Prod: `wrangler secret put WAVESPEED_API_KEY`.
+  // NEVER put the key here or in the mobile app.
+  "vars": {
+    "ENVIRONMENT": "development",
+    // Cost floor for the billed model paths — fixed 1-hour window per caller
+    // (opaque device id, else hashed IP). Committed so a fresh deploy from this
+    // public repo is capped out of the box, not a no-op. Tune per real traffic.
+    "SCAN_RATE_LIMIT": "20",
+    "IMAGE_RATE_LIMIT": "60",
+    // Perception LLM: MiniMax M3 (vision + structured JSON) via WaveSpeed's
+    // OpenAI-compatible endpoint. Fallback MiniMax 01 (also on WaveSpeed).
+    "PERCEPTION_BASE_URL": "https://llm.wavespeed.ai/v1",
+    "PERCEPTION_MODEL": "minimax/minimax-m3",
+    "PERCEPTION_MODEL_FALLBACK": "minimax/minimax-01",
+    // Legacy/fail-over perception path (OpenRouter via AI Gateway). Unused while
+    // PERCEPTION_BASE_URL points at WaveSpeed; kept for an easy provider switch.
+    "AI_GATEWAY_BASE_URL": "https://gateway.ai.cloudflare.com/v1/<ACCOUNT_ID>/<GATEWAY>/openrouter",
+
+    // Dish-image provider: 'wavespeed' (WaveSpeedAI), 'imagen' (Vertex Imagen 4 Fast),
+    // or 'flux' (on-platform Workers AI). Whatever the value, the route falls back
+    // through the configured providers to FLUX, so `wrangler dev` works with NO keys.
+    //
+    // WAVESPEED (current default): set the model id below and the API key as a SECRET:
+    //   wrangler secret put WAVESPEED_API_KEY
+    // WAVESPEED_MODEL is the path after api.wavespeed.ai/api/v3/ — e.g.
+    // 'wavespeed-ai/flux-schnell' (fast/cheap) or 'google/nano-banana-2'.
+    //
+    // IMAGEN (alternative): set IMAGE_PROVIDER='imagen', VERTEX_PROJECT_ID + VERTEX_LOCATION
+    // here, and `wrangler secret put VERTEX_ACCESS_TOKEN`.
+    "IMAGE_PROVIDER": "wavespeed",
+    // Flux 2 Flash — chosen for likeness/quality ($0.008/img, scales with size).
+    // 768*768 + sync mode keeps it fast + light; the app shows it at hero/thumb scale.
+    "WAVESPEED_MODEL": "wavespeed-ai/flux-2-flash/text-to-image",
+    "WAVESPEED_IMAGE_SIZE": "768*768",
+    // GCP project + EU region for Imagen (only used when IMAGE_PROVIDER='imagen').
+    "VERTEX_PROJECT_ID": "",
+    "VERTEX_LOCATION": "europe-west4"
+  },
+
+  // Workers AI — used for FLUX.1 [schnell] dish-image generation.
+  "ai": { "binding": "AI" },
+
+  // R2 bucket for dish images — TEMPORARILY DISABLED for the scan-only deploy.
+  // R2 must be enabled on the account first (owner action in the dashboard), then:
+  //   wrangler r2 bucket create bocado-images --jurisdiction eu
+  // Re-enable this binding + redeploy to turn on AI dish-image generation. The app's
+  // UI uses local placeholder images today, so /scan (menu recognition) works without it.
+  // "r2_buckets": [
+  //   { "binding": "IMAGES", "bucket_name": "bocado-images" }
+  // ],
+
+  // D1 for cached perceptions / saved menus. CREATE IT WITH EU JURISDICTION:
+  //   wrangler d1 create bocado --location weur   (jurisdiction set at creation; paste id below)
+  // Then apply migrations:
+  //   local  (the state `wrangler dev` uses):  wrangler d1 migrations apply bocado --local
+  //   remote (the EU database above):          wrangler d1 migrations apply bocado --remote
+  // `migrations_dir` points the migrations tooling at apps/api/migrations.
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "bocado",
+      "database_id": "bf26adce-655b-4dfe-ba5b-c05a5f3f2da1",
+      "migrations_dir": "migrations"
+    }
+  ],
+
+  "env": {
+    "preview": {
+      "name": "bocado-api-preview",
+      "vars": { "ENVIRONMENT": "preview" }
+    },
+    "production": {
+      "name": "bocado-api",
+      "vars": { "ENVIRONMENT": "production" }
+    }
+  }
+}
