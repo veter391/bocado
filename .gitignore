@@ -1,0 +1,38 @@
+# deps
+node_modules/
+.pnpm-store/
+
+# expo / rn
+.expo/
+dist/
+web-build/
+*.orig.*
+ios/
+android/
+
+# env / secrets
+.env
+.env.*
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+.eas-token
+*.token
+
+# internal-only material — strategy, pricing, ops runbooks, design explorations.
+# Kept locally for the team; never part of the public repository.
+internal/
+
+# throwaway local scan targets
+test-menu/
+
+# cloudflare
+.wrangler/
+
+# os / editor
+.DS_Store
+Thumbs.db
+*.log
+
+# data dumps (large nutrition tables ingested locally)
+data/raw/
