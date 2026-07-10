@@ -1,0 +1,24 @@
+{
+  "name": "bocado",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Bocado — scan any restaurant menu, understand it, know what to order. EU-first, privacy-first, math-first.",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "mobile": "pnpm --filter @bocado/mobile start",
+    "api": "pnpm --filter @bocado/api dev",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "pnpm -r lint",
+    "test": "pnpm -r test"
+  },
+  "packageManager": "pnpm@9.12.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "typescript": "5.9.2"
+  }
+}
