@@ -61,7 +61,7 @@ You may receive SEVERAL images — they are consecutive PAGES / PHOTOS of the SA
 Also judge whether the image(s) actually show a readable restaurant menu. Set top-level "isMenu" (boolean) and "menuConfidence" (0..1): 1.0 = clearly a legible menu, ~0 = clearly NOT a menu (a person, a landscape, a blank/blurred page). When it is not a menu — or is too blurred/dark to read — set isMenu false, a low menuConfidence, and return "dishes": []. NEVER invent dishes to fill an empty or non-menu frame.
 
 [OUTPUT]
-For each dish: "originalText" (verbatim line, original language), "translatedName" ({{LOCALE}}, short), "section"? (menu section if visible), "explanation"? (one plain sentence; omit if unsure), "cookingMethod" (one of: grilled, fried, deep-fried, roasted, baked, sauteed, steamed, boiled, raw, braised, stewed, cured, unknown), "ingredients"[]. Optional top-level "title". Always include top-level "isMenu" and "menuConfidence". If the image is not a menu return {"isMenu": false, "menuConfidence": <low>, "dishes": []}. Output ONLY the JSON object, no prose, no code fences.
+For each dish: "originalText" (verbatim line, original language), "translatedName" (short, in the display language given by the user turn), "section"? (menu section if visible), "explanation"? (one plain sentence; omit if unsure), "cookingMethod" (one of: grilled, fried, deep-fried, roasted, baked, sauteed, steamed, boiled, raw, braised, stewed, cured, unknown), "ingredients"[]. Optional top-level "title". Always include top-level "isMenu" and "menuConfidence". If the image is not a menu return {"isMenu": false, "menuConfidence": <low>, "dishes": []}. Output ONLY the JSON object, no prose, no code fences.
 LOW-CONFIDENCE FALLBACK: if a dish is unreadable/ambiguous, emit minimal ingredients with basis "inferred" and cookingMethod "unknown" rather than fabricating components — the engine will widen the range and lower confidence.
 
 JSON shape:
@@ -73,11 +73,13 @@ ${CANONICAL_LIST}`;
 /**
  * Build the chat messages for the perception call.
  *
- * COST: the static system prompt is emitted FIRST and is byte-identical across every
- * scan (only the locale token is swapped, and that is appended to the otherwise-stable
- * text). Sending it as the leading message lets WaveSpeed's prompt cache reuse the
- * fixed prefix and bill only the (small, variable) image+instruction tail — see
- * `perceiveMenu`'s `prompt_cache` flag. Do NOT interleave variable text before it.
+ * COST: the static system prompt is emitted FIRST and is byte-identical across EVERY
+ * scan AND every display locale — the locale is NOT baked into it; it travels in the
+ * variable user turn below. That makes the whole system message (including the large
+ * CANONICAL VOCABULARY block, the bulk of the tokens) a single shared cache prefix that
+ * WaveSpeed's prompt cache reuses on every request regardless of language, billing only
+ * the small variable image+instruction tail — see `perceiveMenu`'s `prompt_cache` flag.
+ * Do NOT move any per-request/variable text (locale, page count) into the system prompt.
  *
  * MULTI-IMAGE: when several CLEANED page photos are passed they go into ONE user
  * message as multiple `image_url` blocks, so the fixed prompt is amortized over all
@@ -93,12 +95,15 @@ export function buildPerceptionMessages(
   locale: string,
 ): PerceptionMessage[] {
   const urls = typeof imageDataUrls === 'string' ? [imageDataUrls] : imageDataUrls;
-  const instruction =
+  const readInstruction =
     urls.length > 1
       ? `Read these ${urls.length} menu pages as ONE menu and return the JSON described above.`
       : 'Read this menu and return the JSON described above.';
+  // Locale lives HERE, in the variable user turn — never in the static system prompt —
+  // so the whole system message stays a shared cache prefix across every display language.
+  const instruction = `${readInstruction} Write "translatedName" and "explanation" in locale "${locale}".`;
   return [
-    { role: 'system', content: SYSTEM_PROMPT.replace('{{LOCALE}}', locale) },
+    { role: 'system', content: SYSTEM_PROMPT },
     {
       role: 'user',
       content: [
