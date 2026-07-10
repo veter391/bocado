@@ -14,7 +14,7 @@
     "@bocado/nutrition": "workspace:*",
     "@bocado/shared": "workspace:*",
     "hono": "^4.6.0",
-    "zod": "3.24.1"
+    "zod": "4.4.3"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260101.0",

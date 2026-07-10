@@ -24,8 +24,8 @@ importers:
         specifier: ^4.6.0
         version: 4.12.25
       zod:
-        specifier: 3.24.1
-        version: 3.24.1
+        specifier: 4.4.3
+        version: 4.4.3
     devDependencies:
       '@cloudflare/workers-types':
         specifier: ^4.20260101.0
@@ -145,8 +145,8 @@ importers:
         specifier: ^2.8.1
         version: 2.8.1
       zod:
-        specifier: 3.24.1
-        version: 3.24.1
+        specifier: 4.4.3
+        version: 4.4.3
     devDependencies:
       '@types/react':
         specifier: ~19.1.17
@@ -174,8 +174,8 @@ importers:
   packages/shared:
     dependencies:
       zod:
-        specifier: 3.24.1
-        version: 3.24.1
+        specifier: 4.4.3
+        version: 4.4.3
     devDependencies:
       typescript:
         specifier: 5.9.2
@@ -4258,6 +4258,10 @@ packages:
     resolution: {integrity: sha512-7dSzzRQ++CKnNI/krKnYRV7JKKPUXMEh61soaHKg9mrWEhzFWhFnxPxGl+69cD1Ou63C13NUPCnmIcrvqCuM6w==}
     engines: {node: '>=12'}
 
+  yargs@17.7.3:
+    resolution: {integrity: sha512-GZtjxm/J/4TSxuL3FNYjCmLktBTnIw/rVmKSIyKeYAZpmJB2ig9VauCC5xsa82GNKVKDAqpOn3KVzNt0zmrU0g==}
+    engines: {node: '>=12'}
+
   yocto-queue@0.1.0:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
     engines: {node: '>=10'}
@@ -4268,8 +4272,8 @@ packages:
   youch@4.1.0-beta.10:
     resolution: {integrity: sha512-rLfVLB4FgQneDr0dv1oddCVZmKjcJ6yX6mS4pU82Mq/Dt9a3cLZQ62pDBL4AUO+uVrCvtWz3ZFUL2HFAFJ/BXQ==}
 
-  zod@3.24.1:
-    resolution: {integrity: sha512-muH7gBL9sI1nciMZV67X5fTKKBLtwpZ5VBp1vsOQzj1MhrBZ4wlVCm3gedKZWLp0Oyel8sIGfeiz54Su+OVT+A==}
+  zod@4.4.3:
+    resolution: {integrity: sha512-ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ==}
 
 snapshots:
 
@@ -5724,7 +5728,7 @@ snapshots:
       invariant: 2.2.4
       nullthrows: 1.1.1
       tinyglobby: 0.2.17
-      yargs: 17.7.2
+      yargs: 17.7.3
     optional: true
 
   '@react-native/community-cli-plugin@0.81.5(@react-native/metro-config@0.86.0(@babel/core@7.29.7))':
@@ -7934,7 +7938,7 @@ snapshots:
       source-map: 0.5.7
       throat: 5.0.0
       ws: 7.5.11
-      yargs: 17.7.2
+      yargs: 17.7.3
     transitivePeerDependencies:
       - bufferutil
       - supports-color
@@ -9014,6 +9018,17 @@ snapshots:
       y18n: 5.0.8
       yargs-parser: 21.1.1
 
+  yargs@17.7.3:
+    dependencies:
+      cliui: 8.0.1
+      escalade: 3.2.0
+      get-caller-file: 2.0.5
+      require-directory: 2.1.1
+      string-width: 4.2.3
+      y18n: 5.0.8
+      yargs-parser: 21.1.1
+    optional: true
+
   yocto-queue@0.1.0: {}
 
   youch-core@0.3.3:
@@ -9029,4 +9044,4 @@ snapshots:
       cookie: 1.1.1
       youch-core: 0.3.3
 
-  zod@3.24.1: {}
+  zod@4.4.3: {}
