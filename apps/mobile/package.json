@@ -30,7 +30,7 @@
     "expo-linear-gradient": "~15.0.0",
     "expo-notifications": "~0.32.0",
     "expo-secure-store": "~15.0.0",
-    "expo-splash-screen": "~31.0.0",
+    "expo-splash-screen": "~57.0.2",
     "expo-status-bar": "~3.0.0",
     "expo-text-extractor": "^2.0.0",
     "lucide-react-native": "^0.468.0",
