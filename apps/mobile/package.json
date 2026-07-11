@@ -51,7 +51,7 @@
   "devDependencies": {
     "@types/react": "~19.1.17",
     "typescript": "5.9.2",
-    "vitest": "^2.1.0"
+    "vitest": "^4.1.10"
   },
   "//": "Versions are indicative. After install run `npx expo install --fix` to align native deps to Expo SDK 54."
 }
