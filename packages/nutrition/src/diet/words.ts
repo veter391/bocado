@@ -32,6 +32,9 @@ export const ANIMAL_PRODUCT_WORDS = [
   'butter', 'mantequilla', 'beurre', 'cream', 'nata', 'crema', 'yogurt',
   'yoghurt', 'yogur', 'lassi', 'egg', 'eggs', 'huevo', 'oeuf', 'mayonnaise',
   'honey', 'miel', 'ghee', 'bechamel',
+  // Egg+milk desserts that are curated foods (so the model emits them verbatim):
+  // 'flan'/'custard' must count as animal products or a vegan filter passes them.
+  'flan', 'custard',
 ] as const;
 
 export const GLUTEN_WORDS = [
@@ -41,6 +44,11 @@ export const GLUTEN_WORDS = [
   'pasta', 'spaghetti', 'macaroni', 'macarrones', 'noodles', 'couscous',
   'semolina', 'rye', 'barley', 'malt', 'breaded', 'breadcrumbs', 'crouton',
   'croutons', 'pizza', 'dough', 'pastry', 'seitan', 'naan',
+  // Kept in lock-step with the allergen `gluten` pattern list (allergens/detect.ts):
+  // wheat foods that are also curated/canonical, so a "gluten-free" diet never gives
+  // them a silent pass while the allergen path flags them as containing gluten.
+  'pates', 'noodle', 'bulgur', 'oats', 'oat', 'cracker', 'crackers',
+  'croissant', 'cake', 'biscuit',
 ] as const;
 
 export const DAIRY_WORDS = [
@@ -49,7 +57,7 @@ export const DAIRY_WORDS = [
   'milk', 'leche', 'lait', 'dairy', 'cheese', 'queso', 'fromage', 'cheddar',
   'mozzarella', 'parmesan', 'feta', 'paneer', 'halloumi', 'labneh', 'kefir',
   'lassi', 'butter', 'mantequilla', 'beurre', 'cream', 'nata', 'crema',
-  'yogurt', 'yoghurt', 'yogur', 'ghee', 'bechamel', 'custard',
+  'yogurt', 'yoghurt', 'yogur', 'ghee', 'bechamel', 'custard', 'flan',
 ] as const;
 
 /**

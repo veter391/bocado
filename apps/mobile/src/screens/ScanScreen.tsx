@@ -193,10 +193,19 @@ export function ScanScreen({ navigation }: RootStackScreenProps<'Scan'>) {
     setPages((prev) => (prev.length >= MAX_PAGES ? prev : [...prev, dataUrl]));
   }, []);
 
+  /** Blocks overlapping captures: a second shutter tap while takePhoto() is still in
+   *  flight would throw "already capturing" and otherwise get swallowed. */
+  const capturingRef = useRef(false);
   /** Shutter: take a real photo (or a placeholder in dev), clean it, add it to the tray. */
   const handleCapture = useCallback(() => {
-    if (addDisabled) return;
-    void captureCleanedImage().then((dataUrl) => addPage(dataUrl));
+    if (addDisabled || capturingRef.current) return;
+    capturingRef.current = true;
+    void captureCleanedImage()
+      .then((dataUrl) => addPage(dataUrl))
+      .catch(() => setError("Couldn't take that photo. Please try again."))
+      .finally(() => {
+        capturingRef.current = false;
+      });
   }, [addDisabled, addPage]);
 
   /**
@@ -327,18 +336,17 @@ export function ScanScreen({ navigation }: RootStackScreenProps<'Scan'>) {
    */
   async function captureCleanedImage(): Promise<string> {
     if (camera.current && device && hasPermission) {
-      try {
-        const photo = await camera.current.takePhoto();
-        // vision-camera returns a file path; normalize to a `file://` URI for
-        // the manipulator, then clean (strip EXIF/GPS + resize + compress).
-        const uri = photo.path.startsWith('file://') ? photo.path : `file://${photo.path}`;
-        // Crop to the on-screen preview aspect so the analyzed photo matches what the
-        // viewfinder showed (the full-screen preview center-crops the sensor frame).
-        const win = Dimensions.get('window');
-        return await cleanMenuImage(uri, { targetAspect: win.width / win.height });
-      } catch {
-        // Fall through to the placeholder on any capture/cleaning failure.
-      }
+      // Real capture: let failures PROPAGATE so the shutter handler can surface an
+      // error, instead of silently uploading a placeholder as if it were the user's
+      // menu. The mock below is ONLY for the no-camera (dev/simulator) path.
+      const photo = await camera.current.takePhoto();
+      // vision-camera returns a file path; normalize to a `file://` URI for the
+      // manipulator, then clean (strip EXIF/GPS + resize + compress).
+      const uri = photo.path.startsWith('file://') ? photo.path : `file://${photo.path}`;
+      // Crop to the on-screen preview aspect so the analyzed photo matches what the
+      // viewfinder showed (the full-screen preview center-crops the sensor frame).
+      const win = Dimensions.get('window');
+      return await cleanMenuImage(uri, { targetAspect: win.width / win.height });
     }
     return MOCK_IMAGE_DATA_URL;
   }

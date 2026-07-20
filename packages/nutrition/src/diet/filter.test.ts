@@ -14,6 +14,9 @@ describe('dishFitsDiet', () => {
     expect(dishFitsDiet(dish('Salmon', 'Lemon'), 'vegan')).toBe(false);
     expect(dishFitsDiet(dish('Parmesan', 'Rice'), 'vegan')).toBe(false);
     expect(dishFitsDiet(dish('Egg', 'Spinach'), 'vegan')).toBe(false);
+    // Egg+milk desserts that are curated/canonical foods must not pass as vegan.
+    expect(dishFitsDiet(dish('Flan'), 'vegan')).toBe(false);
+    expect(dishFitsDiet(dish('Custard', 'Berries'), 'vegan')).toBe(false);
     expect(dishFitsDiet(dish('Mixed leaves', 'Olive oil', 'Vinegar'), 'vegan')).toBe(true);
   });
 
@@ -30,6 +33,11 @@ describe('dishFitsDiet', () => {
 
   it('gluten-free: excludes gluten-bearing ingredients', () => {
     expect(dishFitsDiet(dish('Spaghetti', 'Egg'), 'gluten-free')).toBe(false);
+    // Wheat foods that are curated/canonical (model emits them verbatim) — kept in
+    // lock-step with the allergen gluten list so none get a silent gluten-free pass.
+    expect(dishFitsDiet(dish('Croissant', 'Butter'), 'gluten-free')).toBe(false);
+    expect(dishFitsDiet(dish('Oats', 'Milk'), 'gluten-free')).toBe(false);
+    expect(dishFitsDiet(dish('Cracker', 'Cheese'), 'gluten-free')).toBe(false);
     expect(dishFitsDiet(dish('Grilled chicken', 'Salad'), 'gluten-free')).toBe(true);
   });
 

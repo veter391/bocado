@@ -26,6 +26,7 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 
 import type { Dish, MealContext, ScannedMenu } from '@bocado/shared';
+import { ingredientGuessSchema } from '@bocado/shared';
 
 import type { Env } from '../env';
 
@@ -110,9 +111,11 @@ const dishSchema: z.ZodType<Dish> = z
     translatedName: z.string(),
     section: z.string().optional(),
     explanation: z.string().optional(),
-    ingredients: z.array(
-      z.object({ name: z.string().min(1), grams: z.number() }).strict(),
-    ),
+    // Must accept the REAL persisted shape: a stored ScannedMenu's dish ingredients
+    // are `IngredientGuess` (canonicalName + basis + isAddedFat, name often absent),
+    // not the legacy `{name, grams}`. Reuse the shared schema so /menus can round-trip
+    // exactly what /scan produced instead of rejecting it 400.
+    ingredients: z.array(ingredientGuessSchema),
     nutrition: nutritionSchema.optional(),
     allergenFlags: z.array(allergenFlagSchema),
     suitability: suitabilitySchema,

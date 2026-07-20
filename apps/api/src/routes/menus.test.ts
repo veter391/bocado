@@ -100,6 +100,28 @@ describe('POST /menus — save', () => {
     expect(Object.keys(row)).toEqual(['id', 'device_id', 'created_at', 'context', 'title', 'dishes']);
   });
 
+  it('accepts the REAL persisted ingredient shape (canonicalName/basis/isAddedFat, no name)', async () => {
+    // Exactly what /scan produces and the app stores. The old {name,grams}.strict()
+    // schema rejected this with 400 — regression guard for that break.
+    const realDish: Dish = {
+      ...DISH,
+      id: 'gazpacho-0',
+      ingredients: [
+        { canonicalName: 'tomato', grams: 200, basis: 'read', isAddedFat: false },
+        { canonicalName: 'olive oil', originalTerm: 'aceite de oliva', grams: 10, basis: 'inferred', isAddedFat: true },
+      ],
+    };
+    const res = await postMenu({ menu: menu({ id: 'real-1', dishes: [realDish] }) });
+    expect(res.status).toBe(201);
+
+    // Round-trips the real ingredient fields back out unchanged.
+    const list = await getAs('/');
+    const body = (await list.json()) as { menus: ScannedMenu[] };
+    const saved = body.menus.find((m) => m.id === 'real-1')!;
+    expect(saved.dishes[0]!.ingredients[0]!.canonicalName).toBe('tomato');
+    expect(saved.dishes[0]!.ingredients[1]!.isAddedFat).toBe(true);
+  });
+
   it('rejects a body with an unknown (potentially personal) key', async () => {
     const res = await postMenu({ menu: menu(), allergies: ['milk'] });
     expect(res.status).toBe(400);

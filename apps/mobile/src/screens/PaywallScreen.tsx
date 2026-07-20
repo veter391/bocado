@@ -20,7 +20,7 @@
  * Colors come from theme tokens (selectedTint / selectedText), verified >= 4.5:1
  * in BOTH light and dark themes. No hardcoded white — the light theme is warm cream.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
@@ -105,6 +105,17 @@ export function PaywallScreen({ navigation }: RootStackScreenProps<'Paywall'>) {
 
   const close = () => navigation.goBack();
 
+  // The post-success "Welcome to Pro" beat schedules a close. Track it so a manual
+  // dismiss (header X) in the meantime can't fire a stray second goBack that pops the
+  // wrong screen. Cleared on unmount.
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (closeTimer.current) clearTimeout(closeTimer.current);
+    },
+    [],
+  );
+
   const onStartPro = async () => {
     if (busy) return;
     setStatus('working');
@@ -116,7 +127,7 @@ export function PaywallScreen({ navigation }: RootStackScreenProps<'Paywall'>) {
       await startPurchase(selectedPlan as PurchasePlan);
       setStatus('success');
       // Brief success beat, then drop back to the (now Pro) app.
-      setTimeout(close, 900);
+      closeTimer.current = setTimeout(close, 900);
     } catch {
       setStatus('error');
     }
@@ -128,7 +139,7 @@ export function PaywallScreen({ navigation }: RootStackScreenProps<'Paywall'>) {
     try {
       await restore();
       setStatus('success');
-      setTimeout(close, 900);
+      closeTimer.current = setTimeout(close, 900);
     } catch {
       setStatus('error');
     }
