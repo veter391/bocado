@@ -272,3 +272,30 @@ describe('deleteMenu / deleteAllMenus — mock mode (no backend)', () => {
     expect(impl).not.toHaveBeenCalled();
   });
 });
+
+describe('listMenus — configured backend', () => {
+  const DEVICE = 'device-abc-12345678';
+
+  it('parses the compact summary rows the server returns (dishCount present)', async () => {
+    const { listMenus } = await loadClient(BASE);
+    mockFetch(
+      jsonResponse({
+        menus: [
+          { id: 'm-new', createdAt: '2026-06-17T12:00:00.000Z', context: 'lunch', title: 'A', dishCount: 3 },
+          { id: 'm-old', createdAt: '2026-06-17T08:00:00.000Z', context: 'dinner', dishCount: 1 },
+        ],
+      }),
+    );
+    const out = await listMenus(DEVICE);
+    // Newest first, and the dish COUNT (not a dishes array) is surfaced for the UI.
+    expect(out.map((m) => m.id)).toEqual(['m-new', 'm-old']);
+    expect(out[0]!.dishCount).toBe(3);
+  });
+
+  it('drops rows missing the summary contract (no dishCount) rather than crashing', async () => {
+    const { listMenus } = await loadClient(BASE);
+    // A malformed row without dishCount must be filtered, not surfaced half-formed.
+    mockFetch(jsonResponse({ menus: [{ id: 'x', createdAt: '2026-06-17T12:00:00.000Z', context: 'lunch' }] }));
+    expect(await listMenus(DEVICE)).toEqual([]);
+  });
+});

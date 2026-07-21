@@ -114,10 +114,10 @@ describe('POST /menus — save', () => {
     const res = await postMenu({ menu: menu({ id: 'real-1', dishes: [realDish] }) });
     expect(res.status).toBe(201);
 
-    // Round-trips the real ingredient fields back out unchanged.
-    const list = await getAs('/');
-    const body = (await list.json()) as { menus: ScannedMenu[] };
-    const saved = body.menus.find((m) => m.id === 'real-1')!;
+    // Round-trips the real ingredient fields back out unchanged (full menu via GET /:id).
+    const got = await getAs('/real-1');
+    expect(got.status).toBe(200);
+    const saved = (await got.json()) as ScannedMenu;
     expect(saved.dishes[0]!.ingredients[0]!.canonicalName).toBe('tomato');
     expect(saved.dishes[0]!.ingredients[1]!.isAddedFat).toBe(true);
   });
@@ -174,10 +174,24 @@ describe('GET /menus — list for a device', () => {
 
     const res = await getAs('/');
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { menus: ScannedMenu[] };
+    const body = (await res.json()) as { menus: Array<{ id: string; dishCount: number }> };
     expect(body.menus.map((m) => m.id)).toEqual(['m-new', 'm-old']);
-    // Round-trips the dishes JSON.
-    expect(body.menus[0]!.dishes[0]!.translatedName).toBe('Grilled chicken');
+    // The list carries a dish COUNT, not the full dishes payload (see next test).
+    expect(body.menus[0]!.dishCount).toBe(1);
+  });
+
+  it('returns COMPACT summaries (dishCount) matching the client MenuSummary, not full dishes', async () => {
+    // Regression: the list used to return full ScannedMenu objects, which the client's
+    // `MenuSummary` guard (requiring `dishCount`) silently dropped — history vanished.
+    await postMenu({ menu: menu({ id: 'm1' }) });
+    const res = await getAs('/');
+    const row = ((await res.json()) as { menus: Array<Record<string, unknown>> }).menus[0]!;
+    expect(row.id).toBe('m1');
+    expect(row.context).toBe('lunch');
+    expect(typeof row.createdAt).toBe('string');
+    expect(row.dishCount).toBe(1);
+    // No heavy dishes array in the list payload.
+    expect(row.dishes).toBeUndefined();
   });
 
   it('does not return another device\'s menus', async () => {
@@ -185,7 +199,7 @@ describe('GET /menus — list for a device', () => {
     await postMenu({ menu: menu({ id: 'theirs' }) }, 'other-device-87654321');
 
     const res = await getAs('/', DEVICE_ID);
-    const body = (await res.json()) as { menus: ScannedMenu[] };
+    const body = (await res.json()) as { menus: Array<{ id: string }> };
     expect(body.menus.map((m) => m.id)).toEqual(['mine']);
   });
 

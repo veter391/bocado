@@ -187,6 +187,33 @@ function rowToMenu(row: SavedMenuRow): ScannedMenu {
   };
 }
 
+/** Compact history-list row. Mirrors the client's `MenuSummary` contract. */
+interface MenuSummaryRow {
+  id: string;
+  createdAt: string;
+  context: MealContext;
+  title?: string;
+  dishCount: number;
+}
+
+/**
+ * Rehydrate a D1 row into a COMPACT summary (a dish count, not the full dishes blob).
+ * The history list only needs id/date/context/title/count; the client fetches the full
+ * menu via GET /menus/:id when a row is opened. The list previously returned the full
+ * ScannedMenu, which the client's `MenuSummary` guard (expecting `dishCount`) silently
+ * filtered out — so server-side history never appeared. This matches the client shape.
+ */
+function rowToSummary(row: SavedMenuRow): MenuSummaryRow {
+  const dishes = JSON.parse(row.dishes) as unknown[];
+  return {
+    id: row.id,
+    createdAt: row.created_at,
+    context: row.context as MealContext,
+    ...(row.title !== null ? { title: row.title } : {}),
+    dishCount: Array.isArray(dishes) ? dishes.length : 0,
+  };
+}
+
 export const menusRoute = new Hono<{ Bindings: Env }>();
 
 // --- POST /menus — save a ScannedMenu for the requesting device. ---
@@ -264,7 +291,7 @@ menusRoute.get('/', async (c) => {
     .bind(device.deviceId, LIST_LIMIT)
     .all<SavedMenuRow>();
 
-  return c.json({ menus: results.map(rowToMenu) }, 200);
+  return c.json({ menus: results.map(rowToSummary) }, 200);
 });
 
 // --- GET /menus/:id — one of THIS device's saved menus by id. ---
