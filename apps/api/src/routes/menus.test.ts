@@ -158,6 +158,19 @@ describe('POST /menus — save', () => {
     expect(((await got.json()) as ScannedMenu).title).toBe('La Taberna');
   });
 
+  it('rejects an over-cap dish payload (oversized text or too many ingredients) with 400', async () => {
+    // Oversized free text.
+    const bigText = { ...DISH, id: 'big', originalText: 'x'.repeat(2001) };
+    expect((await postMenu({ menu: menu({ id: 'big-menu', dishes: [bigText] }) })).status).toBe(400);
+    // Too many ingredients (>40, mirrors /scan's cap).
+    const manyIng = {
+      ...DISH,
+      id: 'many',
+      ingredients: Array.from({ length: 41 }, () => ({ name: 'rice', grams: 10 })),
+    };
+    expect((await postMenu({ menu: menu({ id: 'many-menu', dishes: [manyIng] }) })).status).toBe(400);
+  });
+
   it('rate-limits saves over the per-device cap with 429 + Retry-After', async () => {
     env = envWithD1(fakeD1, { MENUS_RATE_LIMIT: '1' });
     expect((await postMenu({ menu: menu({ id: 'a' }) })).status).toBe(201);

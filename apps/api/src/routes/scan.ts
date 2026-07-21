@@ -217,7 +217,14 @@ async function buildScanTable(perceived: { dishes: PerceivedDish[] }, env: Env):
   // seconds. Batches of CONCURRENCY keep wall-clock low while staying polite to FDC and
   // within the Worker's subrequest limits. Order is irrelevant (records merge by name),
   // and each lookup can NEVER reject the batch (degrade to null), so failures stay soft.
-  const names = [...unresolved];
+  //
+  // Also HARD-CAP the number of distinct FDC lookups per scan: an adversarial (or just
+  // large) multi-page menu could otherwise fan out hundreds of outbound calls from ONE
+  // request and exhaust the shared FDC quota / Worker subrequest ceiling. Names beyond
+  // the cap simply stay unresolved — the engine widens the range and lowers confidence,
+  // which is the honest degradation, never a fabricated number.
+  const MAX_FDC_LOOKUPS = 24;
+  const names = [...unresolved].slice(0, MAX_FDC_LOOKUPS);
   const CONCURRENCY = 6;
   const fetched: FoodRecord[] = [];
   for (let i = 0; i < names.length; i += CONCURRENCY) {

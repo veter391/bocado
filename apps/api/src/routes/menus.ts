@@ -72,8 +72,8 @@ const nutritionSchema = z
       z
         .object({
           db: z.enum(['CIQUAL', 'USDA', 'OFF', 'API']),
-          recordId: z.string(),
-          name: z.string(),
+          recordId: z.string().max(200),
+          name: z.string().max(500),
         })
         .strict(),
     ),
@@ -93,15 +93,15 @@ const allergenFlagSchema = z
       'nuts', 'celery', 'mustard', 'sesame', 'sulphites', 'lupin', 'molluscs',
     ]),
     basis: z.enum(['ingredient-match', 'name-keyword']),
-    note: z.string(),
+    note: z.string().max(1000),
   })
   .strict();
 
 const suitabilitySchema = z
   .object({
     level: z.enum(['good', 'caution', 'avoid']),
-    label: z.string(),
-    reasons: z.array(z.string()),
+    label: z.string().max(200),
+    reasons: z.array(z.string().max(500)).max(20),
     // Confidence echoed from the estimate + the verdict's honest-uncertainty surface.
     // Required (every menu our /scan produces carries them); uncertaintyReason is set
     // only when uncertain, so it stays optional.
@@ -111,22 +111,26 @@ const suitabilitySchema = z
   })
   .strict();
 
+// Generous length caps on every free-text field so a caller (device id is self-chosen,
+// not proof of a real device) cannot persist multi-megabyte blobs into D1. The limits are
+// far above anything a real menu produces, so they never reject legitimate content.
 const dishSchema: z.ZodType<Dish> = z
   .object({
-    id: z.string().min(1),
-    originalText: z.string(),
-    translatedName: z.string(),
-    section: z.string().optional(),
-    explanation: z.string().optional(),
+    id: z.string().min(1).max(200),
+    originalText: z.string().max(2000),
+    translatedName: z.string().max(500),
+    section: z.string().max(200).optional(),
+    explanation: z.string().max(2000).optional(),
     // Must accept the REAL persisted shape: a stored ScannedMenu's dish ingredients
     // are `IngredientGuess` (canonicalName + basis + isAddedFat, name often absent),
     // not the legacy `{name, grams}`. Reuse the shared schema so /menus can round-trip
-    // exactly what /scan produced instead of rejecting it 400.
-    ingredients: z.array(ingredientGuessSchema),
+    // exactly what /scan produced instead of rejecting it 400. Cap the count to mirror
+    // /scan's `perceivedDishSchema` (ingredients .max(40)).
+    ingredients: z.array(ingredientGuessSchema).max(40),
     nutrition: nutritionSchema.optional(),
-    allergenFlags: z.array(allergenFlagSchema),
+    allergenFlags: z.array(allergenFlagSchema).max(20),
     suitability: suitabilitySchema,
-    imageUrl: z.string().optional(),
+    imageUrl: z.string().max(2000).optional(),
     imageIsAi: z.boolean().optional(),
   })
   .strict();
@@ -136,10 +140,10 @@ const saveMenuSchema = z
   .object({
     menu: z
       .object({
-        id: z.string().min(1),
+        id: z.string().min(1).max(200),
         createdAt: z.string().datetime(),
         context: mealContextSchema,
-        title: z.string().optional(),
+        title: z.string().max(500).optional(),
         dishes: z.array(dishSchema).max(200),
       })
       .strict(),
