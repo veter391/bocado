@@ -19,6 +19,11 @@ verified against the code before any change; riskier items were deferred, not fa
   a prior session never appeared. The server now returns compact `MenuSummary` rows
   (id/createdAt/context/title?/dishCount); `GET /menus/:id` still returns the full menu.
   Verified on both sides (server + mobile client tests).
+- **Store persist-debounce (closes the 0.1.3 deferral).** The profile / saved-dishes stores
+  debounced inside a `useEffect` whose cleanup wrote `save(state)`; since React runs cleanup
+  before every re-run, each edit wrote the stale previous value immediately (excess
+  SecureStore I/O). Extracted into a unit-tested `createDebouncedPersister` (trailing-only
+  write, flush-on-unmount, cancel-on-erase). Both stores use it.
 
 ### Security
 - **`POST /menus` ownership guard:** refuse to REPLACE a menu id owned by another device
@@ -30,6 +35,11 @@ verified against the code before any change; riskier items were deferred, not fa
   `.max(40)` / allergenFlags `.max(20)`, so a caller can't persist multi-megabyte blobs.
 - **Read/delete `/menus` rate limits:** `GET /`, `GET /:id`, `DELETE /`, `DELETE /:id` are
   now rate-limited (separate `menus-read` budget) — previously only `POST` was.
+- **Rate-limit counter is now atomic (closes the 0.1.3 deferral).** `enforceRateLimit` did
+  SELECT-then-write, so two concurrent requests in a window could both read the same prior
+  count and both increment, letting a burst exceed the cap. Replaced with a single atomic
+  `INSERT … ON CONFLICT DO UPDATE … RETURNING count`; the cap decision still flows through
+  the pure `checkRateLimit`, so behaviour is unchanged and all limiter tests pass.
 - **`/image` prompt-injection hardening:** the image prompt is built from the normalized
   name ([a-z0-9 ] only), stripping punctuation/newlines that could steer the model off-menu.
   (Content moderation / vocabulary-gating is documented as required before the images
