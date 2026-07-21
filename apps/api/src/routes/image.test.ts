@@ -234,18 +234,21 @@ describe('GET /image — rate limit (cost floor, keyed on hashed CF-Connecting-I
             return stmt;
           },
           async first() {
+            // Atomic increment-and-read (INSERT ... ON CONFLICT ... RETURNING count).
+            if (s.includes('into rate_limit_counters')) {
+              const k = String(params[0]);
+              const start = Number(params[1]);
+              const existing = rows.get(k);
+              const count = existing && existing.window_start === start ? existing.count + 1 : 1;
+              rows.set(k, { window_start: start, count });
+              return { count };
+            }
             if (s.includes('from rate_limit_counters')) {
               return rows.get(String(params[0])) ?? null;
             }
             return null;
           },
           async run() {
-            if (s.includes('into rate_limit_counters')) {
-              rows.set(String(params[0]), {
-                window_start: Number(params[1]),
-                count: Number(params[2]),
-              });
-            }
             return { success: true };
           },
         };

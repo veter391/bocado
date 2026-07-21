@@ -94,12 +94,6 @@ export function checkRateLimit(
   return { allowed: false, retryAfter };
 }
 
-/** A persisted counter row. `count` is the number of requests in `window_start`. */
-interface RateLimitRow {
-  count: number;
-  window_start: number;
-}
-
 /**
  * Enforce the limit for an opaque `key` (device id or hashed IP) using D1 as the
  * counter store. Reads the current window's count, decides via {@link checkRateLimit},
@@ -123,29 +117,25 @@ export async function enforceRateLimit(
   const start = windowStart(nowMs);
 
   try {
+    // ATOMIC increment-and-read in ONE statement. A separate SELECT-then-write let two
+    // concurrent requests in the same window both read the same prior count and both
+    // write count+1, so a burst could exceed the cap. A single INSERT ... ON CONFLICT DO
+    // UPDATE ... RETURNING cannot interleave that way (D1/SQLite serializes the write),
+    // so the returned `count` reflects every prior request. On a window rollover the CASE
+    // resets the count to 1, so old windows never accumulate.
     const row = await env.DB.prepare(
-      'SELECT count, window_start FROM rate_limit_counters WHERE key = ?',
+      `INSERT INTO rate_limit_counters (key, window_start, count) VALUES (?, ?, 1)
+       ON CONFLICT(key) DO UPDATE SET
+         count = CASE WHEN window_start = excluded.window_start THEN count + 1 ELSE 1 END,
+         window_start = excluded.window_start
+       RETURNING count`,
     )
-      .bind(key)
-      .first<RateLimitRow>();
+      .bind(key, start)
+      .first<{ count: number }>();
 
-    // A row from a previous window is stale -> the current window's prior count is 0.
-    const priorCount = row !== null && row.window_start === start ? row.count : 0;
-
-    const decision = checkRateLimit(priorCount, limit, nowMs);
-    if (!decision.allowed) {
-      return decision;
-    }
-
-    // Allowed: record this request. INSERT OR REPLACE resets the row whenever the
-    // window changed (new window_start), so old windows never accumulate.
-    await env.DB.prepare(
-      'INSERT OR REPLACE INTO rate_limit_counters (key, window_start, count) VALUES (?, ?, ?)',
-    )
-      .bind(key, start, priorCount + 1)
-      .run();
-
-    return decision;
+    // `count` is this request's 1-based position in the window; checkRateLimit takes the
+    // PRIOR count (count - 1) and applies the same cap decision used everywhere else.
+    return checkRateLimit((row?.count ?? 1) - 1, limit, nowMs);
   } catch {
     // Fail-open: a counter-store error must never break the billed path. No logging.
     return { allowed: true, retryAfter: 0 };

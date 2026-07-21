@@ -101,6 +101,17 @@ export function makeFakeD1(): FakeD1 {
           const row = rateLimits.get(String(params[0]));
           return row ? (row as unknown as T) : null;
         }
+        // Atomic increment-and-read (INSERT ... ON CONFLICT DO UPDATE ... RETURNING) used
+        // by enforceRateLimit: increment within the same window, reset to 1 on rollover,
+        // and return the NEW count — mirroring the single-statement D1 upsert.
+        if (s.startsWith('insert into rate_limit_counters')) {
+          const k = String(params[0]);
+          const start = Number(params[1]);
+          const existing = rateLimits.get(k);
+          const count = existing && existing.window_start === start ? existing.count + 1 : 1;
+          rateLimits.set(k, { key: k, window_start: start, count });
+          return { count } as unknown as T;
+        }
         throw new Error(`fakeD1: unhandled first() for: ${s}`);
       },
       async run() {
