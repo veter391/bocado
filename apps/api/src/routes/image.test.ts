@@ -114,9 +114,11 @@ describe('GET /image — cache MISS', () => {
 
     // Generated exactly once.
     expect(run).toHaveBeenCalledTimes(1);
+    // The prompt is fed the NORMALIZED name (lowercase, [a-z0-9 ] only) — injection
+    // hardening: no punctuation/newlines from the raw query reach the image model.
     expect(run).toHaveBeenCalledWith(
       '@cf/black-forest-labs/flux-1-schnell',
-      expect.objectContaining({ prompt: expect.stringContaining('Mushroom Risotto') }),
+      expect.objectContaining({ prompt: expect.stringContaining('mushroom risotto') }),
     );
 
     // Persisted exactly once, keyspace-safe + prompt-versioned key.

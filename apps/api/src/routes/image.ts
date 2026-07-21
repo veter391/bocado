@@ -114,8 +114,20 @@ imageRoute.get('/', async (c) => {
 
   // --- R2 cache MISS: generate ONCE via the provider chain (WaveSpeed by default,
   //     FLUX fallback), persist with provenance, then serve. ---
+  //
+  // Feed the NORMALIZED name (not the raw `trimmed`) into the prompt: normalizeName has
+  // already reduced it to [a-z0-9 ] — no punctuation, quotes, or newlines — which strips
+  // the structure a caller would need to prompt-inject the image model into rendering
+  // something off-menu. (This matches the name that keys the cache, so prompt and key
+  // stay in lock-step.)
+  //
+  // NOTE (must close before enabling R2 / the images feature — SECURITY re-audit): this
+  // is injection-hardening only, NOT content moderation. The endpoint still generates a
+  // paid, permanently-cached illustration for ANY food-like phrase. Before images ship,
+  // gate generation on a real food-vocabulary hit (or restrict to names the app itself
+  // produced from a /scan response) so it can't be used as a free image-generation oracle.
   const genStart = Date.now();
-  const { bytes, modelLabel } = await generateWithFallback(foodImagePrompt(trimmed), c.env);
+  const { bytes, modelLabel } = await generateWithFallback(foodImagePrompt(normalized), c.env);
   const genMs = Date.now() - genStart;
 
   await c.env.IMAGES.put(key, bytes, {
