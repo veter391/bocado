@@ -6,6 +6,43 @@ All notable changes to this project are documented here. The format is based on
 
 ## [Unreleased]
 
+## [0.1.5] — 2026-07-11
+
+Overnight hardening pass on branch `overnight/hardening-and-e2e`, driven by two grounded
+review agents (security re-audit + cross-boundary contract-drift hunt). Every finding was
+verified against the code before any change; riskier items were deferred, not faked.
+
+### Fixed
+- **Device history was invisible.** `GET /menus` returned full `ScannedMenu` objects, but
+  the mobile client's `listMenus` filters through `isMenuSummary` (which requires a numeric
+  `dishCount` the server never sent), so every row was dropped and server-side history from
+  a prior session never appeared. The server now returns compact `MenuSummary` rows
+  (id/createdAt/context/title?/dishCount); `GET /menus/:id` still returns the full menu.
+  Verified on both sides (server + mobile client tests).
+
+### Security
+- **`POST /menus` ownership guard:** refuse to REPLACE a menu id owned by another device
+  (409) before the upsert, so `INSERT OR REPLACE` can't silently reassign a row's owner
+  (defence-in-depth; ids are random UUIDs).
+- **FDC fan-out cap:** at most 24 distinct USDA-FDC fallback lookups per `/scan`, so a large
+  or adversarial multi-page menu can't fan out hundreds of outbound calls from one request.
+- **`/menus` payload bounds:** generous length caps on every free-text field + ingredients
+  `.max(40)` / allergenFlags `.max(20)`, so a caller can't persist multi-megabyte blobs.
+- **Read/delete `/menus` rate limits:** `GET /`, `GET /:id`, `DELETE /`, `DELETE /:id` are
+  now rate-limited (separate `menus-read` budget) — previously only `POST` was.
+- **`/image` prompt-injection hardening:** the image prompt is built from the normalized
+  name ([a-z0-9 ] only), stripping punctuation/newlines that could steer the model off-menu.
+  (Content moderation / vocabulary-gating is documented as required before the images
+  feature ships; `/image` is currently disabled in prod.)
+
+### Testing
+- Expanded the end-to-end suite: full journey (scan → save → history → open → per-device
+  isolation → delete), GDPR delete-all, and the anonymity contract through the composed app.
+- Added regression tests for every fix above (server + mobile). All gates green: shared /
+  nutrition (310) / api (141) / mobile (73), typecheck clean.
+
+[0.1.5]: https://github.com/veter391/bocado/releases/tag/v0.1.5
+
 ## [0.1.4] — 2026-07-11
 
 ### Added
@@ -103,5 +140,5 @@ before changing anything).
   out of the public tree, throwaway test artifacts removed, and a public-facing README with a
   banner and a permanent download QR.
 
-[Unreleased]: https://github.com/veter391/bocado/compare/v0.1.4...HEAD
+[Unreleased]: https://github.com/veter391/bocado/compare/v0.1.5...HEAD
 [0.1.1]: https://github.com/veter391/bocado/releases/tag/v0.1.1
