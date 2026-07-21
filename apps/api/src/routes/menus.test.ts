@@ -220,6 +220,12 @@ describe('GET /menus — list for a device', () => {
     const res = await getAs('/', null);
     expect(res.status).toBe(400);
   });
+
+  it('rate-limits reads over the cap with 429 (separate budget from saves)', async () => {
+    env = envWithD1(fakeD1, { MENUS_RATE_LIMIT: '1' });
+    expect((await getAs('/')).status).toBe(200);
+    expect((await getAs('/')).status).toBe(429);
+  });
 });
 
 describe('GET /menus/:id', () => {

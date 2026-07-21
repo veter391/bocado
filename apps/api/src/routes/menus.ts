@@ -22,7 +22,7 @@
  *   GET    /     list recent menus for this device (newest first)
  *   GET    /:id  fetch one of THIS device's saved menus by id
  */
-import { Hono } from 'hono';
+import { Hono, type Context } from 'hono';
 import { z } from 'zod';
 
 import type { Dish, MealContext, ScannedMenu } from '@bocado/shared';
@@ -218,6 +218,27 @@ function rowToSummary(row: SavedMenuRow): MenuSummaryRow {
   };
 }
 
+/**
+ * Cost floor for the read/delete /menus routes (POST has its own inline limiter). Uses a
+ * SEPARATE `menus-read` counter so reads never eat into the save budget, and is generous
+ * — it only stops a caller hammering these endpoints with rotated device ids. Fail-open
+ * (enforceRateLimit contract) and a no-op when MENUS_RATE_LIMIT is unset. Returns a 429
+ * Response to short-circuit the handler, or null to proceed.
+ */
+async function enforceMenusReadLimit(
+  c: Context<{ Bindings: Env }>,
+  deviceId: string,
+): Promise<Response | null> {
+  const limit = parseLimit(c.env.MENUS_RATE_LIMIT);
+  if (limit === null) return null;
+  const decision = await enforceRateLimit(c.env, `menus-read:${deviceId}`, limit, Date.now());
+  if (!decision.allowed) {
+    c.header('Retry-After', String(decision.retryAfter));
+    return c.json({ error: 'Too many requests. Please try again later.' }, 429);
+  }
+  return null;
+}
+
 export const menusRoute = new Hono<{ Bindings: Env }>();
 
 // --- POST /menus — save a ScannedMenu for the requesting device. ---
@@ -288,6 +309,8 @@ menusRoute.post('/', async (c) => {
 menusRoute.get('/', async (c) => {
   const device = deviceIdFromHeader(c);
   if (!device.ok) return device.response;
+  const limited = await enforceMenusReadLimit(c, device.deviceId);
+  if (limited) return limited;
 
   const { results } = await c.env.DB.prepare(
     'SELECT id, created_at, context, title, dishes FROM saved_menus WHERE device_id = ? ORDER BY created_at DESC LIMIT ?',
@@ -304,6 +327,8 @@ menusRoute.get('/', async (c) => {
 menusRoute.get('/:id', async (c) => {
   const device = deviceIdFromHeader(c);
   if (!device.ok) return device.response;
+  const limited = await enforceMenusReadLimit(c, device.deviceId);
+  if (limited) return limited;
 
   const id = c.req.param('id');
   if (id.length === 0) {
@@ -330,6 +355,8 @@ menusRoute.get('/:id', async (c) => {
 menusRoute.delete('/', async (c) => {
   const device = deviceIdFromHeader(c);
   if (!device.ok) return device.response;
+  const limited = await enforceMenusReadLimit(c, device.deviceId);
+  if (limited) return limited;
 
   await c.env.DB.prepare('DELETE FROM saved_menus WHERE device_id = ?')
     .bind(device.deviceId)
@@ -348,6 +375,8 @@ menusRoute.delete('/', async (c) => {
 menusRoute.delete('/:id', async (c) => {
   const device = deviceIdFromHeader(c);
   if (!device.ok) return device.response;
+  const limited = await enforceMenusReadLimit(c, device.deviceId);
+  if (limited) return limited;
 
   const id = c.req.param('id');
   if (id.length === 0) {
