@@ -77,6 +77,12 @@ const nutritionSchema = z
         })
         .strict(),
     ),
+    // The engine's EstimateResult (what /scan actually stores) extends the base estimate
+    // with these honesty fields — accepted (optional, so a minimal/legacy stored menu
+    // without them still round-trips) so a real scan can be saved.
+    unmatchedCount: z.number().optional(),
+    uncertain: z.boolean().optional(),
+    uncertaintyReason: z.string().optional(),
   })
   .strict();
 

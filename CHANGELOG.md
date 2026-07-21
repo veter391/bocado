@@ -6,6 +6,25 @@ All notable changes to this project are documented here. The format is based on
 
 ## [Unreleased]
 
+## [0.1.4] — 2026-07-11
+
+### Added
+- **End-to-end journey test** over the composed Worker (`app`): health → scan (perception
+  mocked) → save the exact `/scan` output → list history → open by id → per-device
+  isolation (404 for another device) → delete → gone. Fully runnable in CI (in-memory D1,
+  no network), plus a non-menu case that must never fabricate dishes.
+
+### Fixed
+- **Saving a scanned menu still failed (second contract drift).** `POST /menus` also
+  rejected the nutrition object's honesty fields — the engine stores an `EstimateResult`
+  (`unmatchedCount` / `uncertain` / `uncertaintyReason`) while `Dish.nutrition` is typed
+  as the narrower `NutritionEstimate`, so the `.strict()` menus schema 400'd every real
+  scan. The new E2E test surfaced it; the schema now accepts these fields (optional, so a
+  minimal/legacy stored menu still round-trips). This is the same class as the 0.1.2
+  ingredient-shape fix — the E2E now guards the whole `/scan → /menus` seam.
+
+[0.1.4]: https://github.com/veter391/bocado/releases/tag/v0.1.4
+
 ## [0.1.3] — 2026-07-11
 
 Second review round — hardening the public API surface. Verified, additive changes
@@ -84,5 +103,5 @@ before changing anything).
   out of the public tree, throwaway test artifacts removed, and a public-facing README with a
   banner and a permanent download QR.
 
-[Unreleased]: https://github.com/veter391/bocado/compare/v0.1.3...HEAD
+[Unreleased]: https://github.com/veter391/bocado/compare/v0.1.4...HEAD
 [0.1.1]: https://github.com/veter391/bocado/releases/tag/v0.1.1
