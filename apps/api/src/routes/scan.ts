@@ -82,12 +82,20 @@ const MAX_PAGES = 5;
  */
 const MAX_IMAGE_CHARS = 3_500_000;
 
-/** A single CLEANED-photo data: URL guard, reused by both `image` and `images[]`. */
+/**
+ * A single CLEANED-photo data: URL guard, reused by both `image` and `images[]`.
+ * Requires an IMAGE data: URL (png/jpeg/webp) — cleanMenuImage always emits JPEG — so a
+ * non-image payload is rejected up front instead of being forwarded to (and billed by)
+ * the perception model.
+ */
+const IMAGE_DATA_URL_RE = /^data:image\/(png|jpe?g|webp)[;,]/i;
 const dataUrl = z
   .string()
   .min(1)
   .max(MAX_IMAGE_CHARS, { message: 'image is too large' })
-  .refine((s) => s.startsWith('data:'), { message: 'image must be a data: URL' });
+  .refine((s) => IMAGE_DATA_URL_RE.test(s), {
+    message: 'image must be a PNG, JPEG, or WebP data: URL',
+  });
 
 const scanRequestSchema = z
   .object({
@@ -203,10 +211,23 @@ async function buildScanTable(perceived: { dishes: PerceivedDish[] }, env: Env):
   }
   if (unresolved.size === 0) return seedTable;
 
+  // Resolve the unknowns with BOUNDED concurrency instead of one-at-a-time: a large
+  // multi-page menu can have dozens of long-tail names, and each FDC lookup is capped
+  // at several seconds — serial resolution would push a single /scan into the tens of
+  // seconds. Batches of CONCURRENCY keep wall-clock low while staying polite to FDC and
+  // within the Worker's subrequest limits. Order is irrelevant (records merge by name),
+  // and each lookup can NEVER reject the batch (degrade to null), so failures stay soft.
+  const names = [...unresolved];
+  const CONCURRENCY = 6;
   const fetched: FoodRecord[] = [];
-  for (const name of unresolved) {
-    const record = await resolveViaUsdaFdc(name, env);
-    if (record) fetched.push(record);
+  for (let i = 0; i < names.length; i += CONCURRENCY) {
+    const batch = names.slice(i, i + CONCURRENCY);
+    const records = await Promise.all(
+      batch.map((name) => resolveViaUsdaFdc(name, env).catch(() => null)),
+    );
+    for (const record of records) {
+      if (record) fetched.push(record);
+    }
   }
   if (fetched.length === 0) return seedTable;
 

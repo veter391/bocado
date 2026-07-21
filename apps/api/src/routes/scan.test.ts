@@ -487,6 +487,13 @@ describe('POST /scan — payload size cap (cost-amplification guard)', () => {
     expect(res.status).toBe(400);
     expect(perceiveMenu).not.toHaveBeenCalled();
   });
+
+  it('rejects a non-image data: URL with 400 and never calls perception', async () => {
+    perceiveMenu.mockResolvedValue(FIXTURE_MENU);
+    const res = await post({ image: 'data:text/plain;base64,aGVsbG8=', locale: 'en' });
+    expect(res.status).toBe(400);
+    expect(perceiveMenu).not.toHaveBeenCalled();
+  });
 });
 
 describe('POST /scan — empty menu', () => {

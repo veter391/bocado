@@ -6,6 +6,34 @@ All notable changes to this project are documented here. The format is based on
 
 ## [Unreleased]
 
+## [0.1.3] — 2026-07-11
+
+Second review round — hardening the public API surface. Verified, additive changes
+only; riskier findings were deliberately deferred rather than risk a regression.
+
+### Added
+- `POST /menus` now enforces a per-device hourly rate limit (`MENUS_RATE_LIMIT`,
+  default 120) — the menus plane was otherwise unbounded anonymous D1 writes.
+
+### Changed
+- `/scan` rejects non-image payloads up front: a data URL must be a PNG/JPEG/WebP image,
+  so a non-image blob can't be forwarded to (and billed by) the perception model.
+- USDA long-tail nutrition lookups in `/scan` now run with bounded concurrency (batches
+  of 6) instead of one-at-a-time, cutting worst-case wall-clock on large multi-page menus;
+  each lookup degrades to null on failure so a batch can never fail the scan.
+
+### Deferred (documented, not done — reward did not justify regression risk)
+- Atomicity of the fixed-window rate-limit counter (read-then-write can let a concurrent
+  burst slightly exceed the cap): it is a documented cost floor, not a security boundary,
+  and the atomic-UPDATE fix touches the limiter every route depends on.
+- Per-device ownership guard on the menu upsert: menu ids are random UUIDs, so a
+  cross-device collision is not practically reachable.
+- Persist-debounce refactor in the profile / saved-dishes stores (extra keystore writes
+  on rapid edits): current behaviour is eventually-correct with no data loss, and the
+  refactor touches a persistence path.
+
+[0.1.3]: https://github.com/veter391/bocado/releases/tag/v0.1.3
+
 ## [0.1.2] — 2026-07-11
 
 Fixes from a grounded two-agent code review (each finding verified against the code
@@ -56,5 +84,5 @@ before changing anything).
   out of the public tree, throwaway test artifacts removed, and a public-facing README with a
   banner and a permanent download QR.
 
-[Unreleased]: https://github.com/veter391/bocado/compare/v0.1.2...HEAD
+[Unreleased]: https://github.com/veter391/bocado/compare/v0.1.3...HEAD
 [0.1.1]: https://github.com/veter391/bocado/releases/tag/v0.1.1

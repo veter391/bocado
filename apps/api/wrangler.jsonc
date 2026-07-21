@@ -17,6 +17,7 @@
     // public repo is capped out of the box, not a no-op. Tune per real traffic.
     "SCAN_RATE_LIMIT": "20",
     "IMAGE_RATE_LIMIT": "60",
+    "MENUS_RATE_LIMIT": "120",
     // Perception LLM: MiniMax M3 (vision + structured JSON) via WaveSpeed's
     // OpenAI-compatible endpoint. Fallback MiniMax 01 (also on WaveSpeed).
     "PERCEPTION_BASE_URL": "https://llm.wavespeed.ai/v1",

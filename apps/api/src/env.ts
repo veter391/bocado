@@ -65,6 +65,11 @@ export interface Env {
    */
   IMAGE_RATE_LIMIT?: string;
   /**
+   * Per-window (hourly) cap for POST /menus, keyed on the mandatory X-Device-Id. Bounds
+   * unauthenticated D1 writes. OPTIONAL + FAIL-OPEN, same semantics as SCAN_RATE_LIMIT.
+   */
+  MENUS_RATE_LIMIT?: string;
+  /**
    * Base URL for the perception LLM (OpenAI-compatible /chat/completions). Defaults
    * to WaveSpeed ('https://llm.wavespeed.ai/v1'); the client falls back to
    * AI_GATEWAY_BASE_URL when this is unset (legacy OpenRouter path).

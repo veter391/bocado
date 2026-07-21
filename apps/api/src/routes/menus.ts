@@ -29,6 +29,7 @@ import type { Dish, MealContext, ScannedMenu } from '@bocado/shared';
 import { ingredientGuessSchema } from '@bocado/shared';
 
 import type { Env } from '../env';
+import { enforceRateLimit, parseLimit } from '../rateLimit';
 
 /** Opaque client installation id. Bounded; not identity, never personal data. */
 const deviceIdSchema = z.string().min(8).max(128);
@@ -186,6 +187,24 @@ export const menusRoute = new Hono<{ Bindings: Env }>();
 menusRoute.post('/', async (c) => {
   const device = deviceIdFromHeader(c);
   if (!device.ok) return device.response;
+
+  // Cost/abuse floor: bound how many menus one device can persist per hour — the
+  // /menus plane is otherwise unbounded anonymous D1 writes. The device id is
+  // mandatory here so it is always the key. Fail-open on counter errors (same
+  // contract as /scan and /image).
+  const menusLimit = parseLimit(c.env.MENUS_RATE_LIMIT);
+  if (menusLimit !== null) {
+    const decision = await enforceRateLimit(
+      c.env,
+      `menus:${device.deviceId}`,
+      menusLimit,
+      Date.now(),
+    );
+    if (!decision.allowed) {
+      c.header('Retry-After', String(decision.retryAfter));
+      return c.json({ error: 'Too many requests. Please try again later.' }, 429);
+    }
+  }
 
   let rawBody: unknown;
   try {

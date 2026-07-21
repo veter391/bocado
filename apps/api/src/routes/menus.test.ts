@@ -143,6 +143,14 @@ describe('POST /menus — save', () => {
     const res = await postMenu({ menu: { ...menu(), context: 'brunch' } });
     expect(res.status).toBe(400);
   });
+
+  it('rate-limits saves over the per-device cap with 429 + Retry-After', async () => {
+    env = envWithD1(fakeD1, { MENUS_RATE_LIMIT: '1' });
+    expect((await postMenu({ menu: menu({ id: 'a' }) })).status).toBe(201);
+    const over = await postMenu({ menu: menu({ id: 'b' }) });
+    expect(over.status).toBe(429);
+    expect(Number(over.headers.get('Retry-After'))).toBeGreaterThan(0);
+  });
 });
 
 describe('GET /menus — list for a device', () => {
