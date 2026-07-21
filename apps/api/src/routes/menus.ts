@@ -225,6 +225,17 @@ menusRoute.post('/', async (c) => {
   }
   const { menu } = parsed.data;
 
+  // Ownership guard: a menu id is device-scoped. Never let a save REPLACE an id another
+  // device already owns — `INSERT OR REPLACE` would otherwise silently reassign the row's
+  // owner. Ids are random UUIDs so a cross-device collision is not practically reachable;
+  // this is defence-in-depth. Same-device re-saves still pass (idempotent).
+  const existing = await c.env.DB.prepare('SELECT device_id FROM saved_menus WHERE id = ?')
+    .bind(menu.id)
+    .first<{ device_id: string }>();
+  if (existing && existing.device_id !== device.deviceId) {
+    return c.json({ error: 'A menu with this id already exists.' }, 409);
+  }
+
   // `INSERT OR REPLACE` so re-saving the same menu id is idempotent (no duplicates).
   await c.env.DB.prepare(
     'INSERT OR REPLACE INTO saved_menus (id, device_id, created_at, context, title, dishes) VALUES (?, ?, ?, ?, ?, ?)',

@@ -88,6 +88,12 @@ export function makeFakeD1(): FakeD1 {
           }
           return row ? (row as unknown as T) : null;
         }
+        // Ownership probe used by POST /menus before an upsert: look up a row's owner
+        // by id ALONE (not device-scoped) so a cross-device id collision can be rejected.
+        if (s.startsWith('select device_id from saved_menus where id =')) {
+          const row = savedMenus.get(String(params[0]));
+          return row ? ({ device_id: row.device_id } as T) : null;
+        }
         if (s.startsWith('select food_key, record, created_at from usda_food_cache')) {
           return (usdaFoods.get(String(params[0])) as T) ?? null;
         }

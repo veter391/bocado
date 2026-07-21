@@ -126,6 +126,38 @@ describe('E2E — scan → save → history → open → delete (composed Worker
     expect(goneRes.status).toBe(404);
   });
 
+  it('GDPR erasure: delete-all wipes every saved menu for the device', async () => {
+    perceiveMenu.mockResolvedValue(FIXTURE_MENU);
+    const scanned = (await (
+      await call('/scan', 'POST', { image: IMAGE_DATA_URL, locale: 'en', context: 'lunch' })
+    ).json()) as ScannedMenu;
+    expect((await call('/menus', 'POST', { menu: scanned })).status).toBe(201);
+    // A second, distinct saved menu for the same device.
+    expect(
+      (await call('/menus', 'POST', { menu: { ...scanned, id: `${scanned.id}-2` } })).status,
+    ).toBe(201);
+
+    const before = (await (await call('/menus', 'GET')).json()) as { menus: ScannedMenu[] };
+    expect(before.menus).toHaveLength(2);
+
+    // Delete-all (right to erasure). The whole device history is gone afterwards.
+    expect((await call('/menus', 'DELETE')).status).toBe(200);
+    const after = (await (await call('/menus', 'GET')).json()) as { menus: ScannedMenu[] };
+    expect(after.menus).toHaveLength(0);
+  });
+
+  it('enforces the anonymity contract through the composed app (profile key -> 400)', async () => {
+    // A body carrying personal data must be rejected at the boundary — and must never
+    // reach the (billed, off-device) perception model.
+    const res = await call('/scan', 'POST', {
+      image: IMAGE_DATA_URL,
+      locale: 'en',
+      profile: { allergies: ['milk'] },
+    });
+    expect(res.status).toBe(400);
+    expect(perceiveMenu).not.toHaveBeenCalled();
+  });
+
   it('a non-menu photo never fabricates dishes and is not persistable as a real menu', async () => {
     // Model says "not a menu": /scan returns an empty menu with notMenu + a hint.
     perceiveMenu.mockResolvedValue({

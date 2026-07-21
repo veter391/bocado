@@ -144,6 +144,20 @@ describe('POST /menus — save', () => {
     expect(res.status).toBe(400);
   });
 
+  it('does not let another device overwrite a menu id (409, original owner keeps it)', async () => {
+    expect((await postMenu({ menu: menu({ id: 'shared-id' }) }, DEVICE_ID)).status).toBe(201);
+    // A different device submitting the SAME id must not hijack the row.
+    const hijack = await postMenu(
+      { menu: menu({ id: 'shared-id', title: 'Hijacked' }) },
+      OTHER_DEVICE,
+    );
+    expect(hijack.status).toBe(409);
+    // The original owner still owns the original content.
+    const got = await getAs('/shared-id', DEVICE_ID);
+    expect(got.status).toBe(200);
+    expect(((await got.json()) as ScannedMenu).title).toBe('La Taberna');
+  });
+
   it('rate-limits saves over the per-device cap with 429 + Retry-After', async () => {
     env = envWithD1(fakeD1, { MENUS_RATE_LIMIT: '1' });
     expect((await postMenu({ menu: menu({ id: 'a' }) })).status).toBe(201);
