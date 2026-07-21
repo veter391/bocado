@@ -32,6 +32,7 @@ import {
 } from './savedDishesStorage';
 
 export type { SavedDishRef } from './savedDishesStorage';
+import { createDebouncedPersister } from './debouncedPersister';
 
 /** Delay before a change is flushed to secure storage, to coalesce rapid toggles. */
 const PERSIST_DEBOUNCE_MS = 400;
@@ -113,24 +114,15 @@ export function SavedDishesProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  // Persist on every change once hydrated (never before — that would clobber the
-  // stored list with the empty default). Debounced to coalesce rapid toggles, and
-  // flushed on unmount so the last change is not lost.
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Persist on every change once hydrated (never before — that would clobber the stored
+  // list with the empty default). The debounce coalesces rapid toggles into ONE trailing
+  // write; the pending value is flushed on unmount so the last change is never lost.
+  // (Deliberately NOT an inline effect-cleanup write — see createDebouncedPersister.)
+  const persister = useRef(createDebouncedPersister(saveSavedDishes, PERSIST_DEBOUNCE_MS)).current;
   useEffect(() => {
-    if (!hydrated) return;
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => {
-      void saveSavedDishes(saved);
-    }, PERSIST_DEBOUNCE_MS);
-    return () => {
-      if (timer.current) {
-        clearTimeout(timer.current);
-        timer.current = null;
-        void saveSavedDishes(saved);
-      }
-    };
-  }, [saved, hydrated]);
+    if (hydrated) persister.schedule(saved);
+  }, [saved, hydrated, persister]);
+  useEffect(() => () => persister.flush(), [persister]);
 
   const isSaved = useCallback(
     (menuId: string, dishId: string) => {
@@ -147,13 +139,10 @@ export function SavedDishesProvider({ children }: { children: ReactNode }) {
   );
   const clear = useCallback(() => {
     // Cancel any pending write so the debounced flush cannot resurrect erased data.
-    if (timer.current) {
-      clearTimeout(timer.current);
-      timer.current = null;
-    }
+    persister.cancel();
     dispatch({ type: 'clear' });
     void deleteSavedDishes();
-  }, []);
+  }, [persister]);
 
   const value = useMemo<SavedDishesStore>(
     () => ({ saved, hydrated, isSaved, toggle, remove, clear }),

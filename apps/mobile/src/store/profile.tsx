@@ -20,6 +20,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useReducer,
 import type { ReactNode } from 'react';
 import type { AllergenId, DietId, GoalId, UserProfile } from '@bocado/shared';
 import { deleteProfile, emptyProfile, loadProfile, saveProfile } from './profileStorage';
+import { createDebouncedPersister } from './debouncedPersister';
 
 /** Delay before a change is flushed to secure storage, to coalesce rapid edits. */
 const PERSIST_DEBOUNCE_MS = 400;
@@ -145,24 +146,17 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  // Persist on every change once hydrated (never before — that would clobber the
-  // stored value with the empty default). Debounced to coalesce rapid edits, and
-  // flushed on unmount so the last change is not lost.
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Persist on every change once hydrated (never before — that would clobber the stored
+  // value with the empty default). The debounce coalesces rapid edits into ONE trailing
+  // write; the pending value is flushed on unmount so the last change is never lost.
+  // (Deliberately NOT an inline effect-cleanup write — React runs cleanup before every
+  // re-run, which used to write the stale previous value on every edit. See
+  // createDebouncedPersister.)
+  const persister = useRef(createDebouncedPersister(saveProfile, PERSIST_DEBOUNCE_MS)).current;
   useEffect(() => {
-    if (!hydrated) return;
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => {
-      void saveProfile(profile);
-    }, PERSIST_DEBOUNCE_MS);
-    return () => {
-      if (timer.current) {
-        clearTimeout(timer.current);
-        timer.current = null;
-        void saveProfile(profile);
-      }
-    };
-  }, [profile, hydrated]);
+    if (hydrated) persister.schedule(profile);
+  }, [profile, hydrated, persister]);
+  useEffect(() => () => persister.flush(), [persister]);
 
   const setDiet = useCallback((diet: DietId) => dispatch({ type: 'setDiet', diet }), []);
   const toggleAllergy = useCallback(
@@ -179,13 +173,10 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   const reset = useCallback(() => dispatch({ type: 'reset' }), []);
   const clear = useCallback(() => {
     // Cancel any pending write so the debounced flush cannot resurrect erased data.
-    if (timer.current) {
-      clearTimeout(timer.current);
-      timer.current = null;
-    }
+    persister.cancel();
     dispatch({ type: 'clear' });
     void deleteProfile();
-  }, []);
+  }, [persister]);
 
   const value = useMemo<ProfileStore>(
     () => ({
